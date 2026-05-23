@@ -1,65 +1,110 @@
-import Image from "next/image";
+// app/page.tsx
+'use client';
 
-export default function Home() {
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { Camera, Sparkles } from 'lucide-react';
+
+export default function AttractScreen() {
+  const router = useRouter();
+
+  const handleStart = () => {
+    router.push('/packages');
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    // Seluruh layar adalah area tap untuk mulai (UX Kiosk Monitor Sentuh)
+    <main 
+      className="relative flex h-screen w-screen flex-col items-center justify-between py-12 px-6 cursor-pointer overflow-hidden select-none"
+      onClick={handleStart}
+    >
+      
+      {/* 1. BRANDING TOP BAR (Clean & Center) */}
+      <div className="z-20 flex flex-col items-center text-center mt-4">
+        <div className="font-serif text-4xl text-highlight font-black italic tracking-wider mb-1">
+          Shalvariq Booth
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <p className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-400">
+          Where you want to capture your moments with
+        </p>
+      </div>
+
+      {/* 2. CENTERPIECE: Tumpukan Polaroid & Coretan Tangan */}
+      <div className="relative w-full max-w-2xl h-[380px] flex justify-center items-center z-10 pointer-events-none">
+        
+        {/* Foto Kiri */}
+        <motion.div 
+          className="absolute polaroid-card w-48 h-64 -translate-x-32"
+          initial={{ rotate: -15, scale: 0.9, opacity: 0 }}
+          animate={{ rotate: -8, scale: 1, opacity: 1 }}
+          transition={{ duration: 0.6 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=400&auto=format&fit=crop" alt="sample 1" className="w-full h-full object-cover grayscale-[20%] sepia-[10%]" />
+        </motion.div>
+
+        {/* Foto Kanan */}
+        <motion.div 
+          className="absolute polaroid-card w-48 h-64 translate-x-32"
+          initial={{ rotate: 15, scale: 0.9, opacity: 0 }}
+          animate={{ rotate: 12, scale: 1, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=400&auto=format&fit=crop" alt="sample 2" className="w-full h-full object-cover grayscale-[20%] sepia-[10%]" />
+        </motion.div>
+
+        {/* Foto Tengah (Paling Depan) */}
+        <motion.div 
+          className="absolute polaroid-card w-56 h-72 z-20 shadow-xl border border-zinc-200"
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
+        >
+          {/* Efek Selotip Kertas Khas Scrapbook */}
+          <div className="scrapbook-tape top-[-18px] left-1/2 transform -translate-x-1/2 rotate-[-4deg]" />
+          
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop" alt="sample main" className="w-full h-full object-cover sepia-[15%]" />
+          
+          <div className="absolute bottom-2.5 left-1/2 transform -translate-x-1/2 font-serif italic text-xs text-zinc-400 tracking-wide">
+            captured moments
+          </div>
+        </motion.div>
+      </div>
+
+      {/* 3. INSTRUCTION & BIG CTA BUTTON */}
+      <div className="z-20 flex flex-col items-center w-full max-w-md mb-4">
+        <h1 className="text-4xl font-serif font-black text-[#2c2c2c] tracking-tight text-center leading-tight mb-6">
+          Ready to make <span className="text-highlight italic">memories?</span>
+        </h1>
+
+        <motion.div
+          animate={{ scale: [1, 1.03, 1] }}
+          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          className="w-full"
+        >
+          <button className="btn-retro w-full py-5 text-xl tracking-widest font-bold uppercase flex items-center justify-center gap-3 bg-[#2c2c2c] text-[#f7f6f2]">
+            <Camera size={24} />
+            Tap Screen To Start
+          </button>
+        </motion.div>
+
+        <p className="text-xs text-zinc-400 font-bold tracking-wider uppercase mt-4 flex items-center gap-1.5">
+          {/* <Sparkles size={12} className="text-highlight" />  */}
+          Press anywhere on the screen to begin
+        </p>
+      </div>
+
+      {/* 4. HIDDEN ADMIN CORNER (Pojok Kanan Bawah) */}
+      <button 
+        className="absolute bottom-0 right-0 w-16 h-16 opacity-0 cursor-default z-50"
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log("Admin Panel Triggered");
+        }}
+        aria-label="Admin Access"
+      />
+    </main>
   );
 }
