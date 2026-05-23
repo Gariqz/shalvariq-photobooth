@@ -1,13 +1,14 @@
 // app/success/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { CheckCircle, Smile, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function SuccessScreen() {
+// 1. PISAHIN LOGIC UTAMA JADI KOMPONEN ANAK
+function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { clearSession } = useStore();
@@ -32,11 +33,10 @@ export default function SuccessScreen() {
     router.push('/'); 
   };
 
-  // API Size digedein jadi 300x300 biar resolusi QR-nya tajam saat dicetak gede di layar
   const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(imageUrl)}`;
 
   return (
-    <main className="relative flex h-screen w-screen flex-col items-center justify-center p-6 text-[#2c2c2c] overflow-hidden select-none bg-grid-paper">
+    <div className="relative flex h-screen w-screen flex-col items-center justify-center p-6 text-[#2c2c2c] overflow-hidden select-none bg-grid-paper">
       
       {/* KERTAS RESI PENGILESAN HASIL */}
       <motion.div 
@@ -55,7 +55,7 @@ export default function SuccessScreen() {
           Silakan ambil hasil cetak Anda di bawah.
         </p>
 
-        {/* BOX GENERATOR QR CODE (Diperbesar) */}
+        {/* BOX GENERATOR QR CODE */}
         {imageUrl ? (
           <div className="flex flex-col items-center bg-[#f7f6f2] p-6 border-[3px] border-[#2c2c2c] mb-6 w-full shadow-[inset_4px_4px_0px_rgba(0,0,0,0.05)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -65,14 +65,14 @@ export default function SuccessScreen() {
               className="w-64 h-64 border-[3px] border-[#2c2c2c] shadow-[6px_6px_0px_#2c2c2c] bg-white transition-transform hover:scale-105" 
             />
             <p className="text-xs font-bold text-[#2c2c2c] uppercase tracking-wider max-w-[280px] leading-relaxed mt-6">
-              Silahkan scan QR Code berikut untuk mendownload file
+              Silakan scan QR Code di atas menggunakan smartphone Anda untuk menyimpan versi digital.
             </p>
           </div>
         ) : (
           <p className="text-xs text-red-500 font-bold mb-6">Link QR Code gagal dimuat.</p>
         )}
 
-        {/* TOMBOL SELESAI (Ukurannya dikecilin & di-proporsi) */}
+        {/* TOMBOL SELESAI */}
         <button 
           onClick={handleFinish}
           className="btn-retro w-full py-4 text-lg font-black uppercase tracking-widest flex items-center justify-center gap-3 bg-[#c95d63] text-white border-[3px] border-[#2c2c2c] shadow-[6px_6px_0px_#2c2c2c] hover:translate-y-[2px] active:translate-y-[6px] active:shadow-none transition-all"
@@ -81,7 +81,7 @@ export default function SuccessScreen() {
         </button>
       </motion.div>
 
-      {/* FOOTER TIMER (Z-index dinaikin & margin disesuaiin biar ga ketendang) */}
+      {/* FOOTER TIMER */}
       <div className="absolute bottom-6 z-50 bg-white border-[3px] border-[#2c2c2c] px-6 py-3 shadow-[4px_4px_0px_#2c2c2c] transform rotate-[-1deg]">
         <div className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-3">
           <RefreshCw size={16} className="animate-spin text-[#c95d63]" strokeWidth={3} />
@@ -89,6 +89,19 @@ export default function SuccessScreen() {
         </div>
       </div>
 
-    </main>
+    </div>
+  );
+}
+
+// 2. BUNGKUS KOMPONEN UTAMA PAKE SUSPENSE
+export default function SuccessScreen() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-screen items-center justify-center bg-[#f7f6f2] font-bold text-gray-500 uppercase tracking-widest">
+        Menyiapkan Layar Selesai...
+      </div>
+    }>
+      <SuccessContent />
+    </Suspense>
   );
 }
