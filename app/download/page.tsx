@@ -30,9 +30,10 @@ function DownloadContent() {
   };
 
   return (
-    <main className="min-h-screen w-full bg-[#f7f6f2] bg-grid-paper text-[#2c2c2c] flex flex-col items-center px-6 py-12 select-none">
+    // DI SINI VAKSINNYA KERJA: h-[100dvh], overflow-y-auto, overflow-x-hidden, touch-pan-y
+    <main className="relative flex h-[100dvh] w-full flex-col items-center py-12 px-6 bg-[#f7f6f2] bg-grid-paper text-[#2c2c2c] overflow-y-auto overflow-x-hidden select-none touch-pan-y">
       
-      <div className="flex flex-col items-center text-center mb-8">
+      <div className="flex flex-col items-center text-center mb-8 shrink-0">
         <span className="font-serif text-3xl font-black italic text-[#c95d63] tracking-wider">
           Shalvariq.
         </span>
@@ -44,7 +45,7 @@ function DownloadContent() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white border-[3px] border-[#2c2c2c] p-4 pb-14 shadow-[10px_10px_0px_rgba(44,44,44,0.1)] w-full max-w-sm transform rotate-1 relative"
+        className="bg-white border-[3px] border-[#2c2c2c] p-4 pb-14 shadow-[10px_10px_0px_rgba(44,44,44,0.1)] w-full max-w-sm transform rotate-1 relative shrink-0"
       >
         <div className="scrapbook-tape top-[-15px] left-1/2 transform -translate-x-1/2 w-28 h-8 rotate-[-2deg]" />
         
@@ -62,7 +63,7 @@ function DownloadContent() {
         </div>
       </motion.div>
 
-      <div className="w-full max-w-sm mt-10 flex flex-col gap-4">
+      <div className="w-full max-w-sm mt-10 flex flex-col gap-4 shrink-0 mb-8">
         <button 
           onClick={handleDownload}
           className="btn-retro bg-[#c95d63] text-white py-4 text-center font-bold uppercase tracking-widest text-base flex items-center justify-center gap-2 border-[3px] border-[#2c2c2c] shadow-[4px_4px_0px_#2c2c2c] w-full"
@@ -77,7 +78,7 @@ function DownloadContent() {
           </p>
         </div>
 
-<a 
+        <a 
           href="https://instagram.com/shalvariq.photobooth"
           target="_blank"
           rel="noopener noreferrer"
@@ -100,7 +101,8 @@ function DownloadContent() {
 // BUNGKUS KOMPONEN UTAMA PAKE SUSPENSE BIAR VERCEL GAK NGAMUK
 export default function MobileDownloadScreen() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-bold text-gray-500 uppercase tracking-widest">Memuat Halaman...</div>}>
+    // Samain juga tinggi layarnya di fallback Suspense
+    <Suspense fallback={<div className="h-[100dvh] flex items-center justify-center font-bold text-gray-500 uppercase tracking-widest">Memuat Halaman...</div>}>
       <DownloadContent />
     </Suspense>
   );

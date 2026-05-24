@@ -36,7 +36,8 @@ function SuccessContent() {
   const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(imageUrl)}`;
 
   return (
-      <div className="relative flex min-h-screen w-full flex-col items-center justify-center py-12 px-6 text-[#2c2c2c] overflow-x-hidden select-none bg-grid-paper">      
+    <div className="relative flex h-screen w-screen flex-col items-center justify-center p-6 text-[#2c2c2c] overflow-hidden select-none bg-grid-paper">
+      
       {/* KERTAS RESI PENGILESAN HASIL */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, rotate: -1 }}
