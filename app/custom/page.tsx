@@ -156,6 +156,7 @@ export default function CustomFramePreOrder() {
                 <li>Desainlah mengikuti area lubang dari template yang Anda unduh di atas.</li>
                 <li>Wajib menggunakan format <span className="font-bold text-[#c95d63]">.PNG transparan</span>.</li>
                 <li>Setelah berhasil, Anda akan mendapat tiket <span className="font-bold text-[#2c2c2c]">QR Code</span> untuk di-scan di booth fisik.</li>
+                <li className="text-amber-600 font-bold">⚠️ Tiket QR & file desain Anda akan kedaluwarsa dan dihapus otomatis dalam 7 hari jika tidak digunakan.</li>
               </ul>
             </div>
 
@@ -228,7 +229,7 @@ export default function CustomFramePreOrder() {
               </div>
 
               <div className="bg-[#fff1f2] border-2 border-[#c95d63] p-3 text-xs text-[#2c2c2c] font-bold">
-                ⚠️ PENTING: Harap Screenshot / Simpan halaman ini sekarang! Kami tidak mengirimkan QR Code ini ke email.
+                ⚠️ PENTING: Harap Screenshot / Simpan halaman ini sekarang! Tiket QR Code dan berkas desain Anda hanya berlaku selama 7 hari sebelum dihapus otomatis dari server demi keamanan data.
               </div>
             </div>
             <button onClick={() => window.location.reload()} className="text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-[#c95d63] underline underline-offset-4">Kembali ke Beranda</button>

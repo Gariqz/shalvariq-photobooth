@@ -154,7 +154,7 @@ function DownloadContent() {
                 <h2 className="font-black uppercase tracking-widest text-sm">Soft File Mentahan</h2>
               </div>
               <p className="text-xs text-gray-500 font-medium leading-relaxed mb-2">
-                Ini adalah jepretan mentah (termasuk yang retake). Kamu bisa download satu-satu untuk di-post ke Feed!
+                ⏱️ Unduh sekarang! Seluruh berkas foto (kolase & mentahan) di halaman ini akan dihapus permanen dari server dalam 7 hari demi menjaga privasi Anda.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
