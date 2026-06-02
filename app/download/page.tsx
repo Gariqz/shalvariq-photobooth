@@ -3,11 +3,10 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Download, Heart, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Download, Heart, Loader2, AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 
-// Setup Supabase Client (Pakai Kunci Publik Anonim)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -15,7 +14,6 @@ const supabase = createClient(
 
 function DownloadContent() {
   const searchParams = useSearchParams();
-  // SEKARANG KITA NANGKEP SESSION ID BUKAN FILE NAME
   const sessionId = searchParams.get('session');
 
   const [collageUrl, setCollageUrl] = useState<string | null>(null);
@@ -24,7 +22,6 @@ function DownloadContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // EFFECT: Fetch isi folder berdasarkan Session ID
   useEffect(() => {
     async function fetchSessionFiles() {
       if (!sessionId) {
@@ -34,7 +31,6 @@ function DownloadContent() {
       }
 
       try {
-        // Minta Supabase me-list (mendaftar) semua file di dalam folder Session
         const { data, error: listError } = await supabase.storage
           .from('photobooth-prints')
           .list(sessionId);
@@ -49,9 +45,7 @@ function DownloadContent() {
         let collage: string | null = null;
         const rawFiles: string[] = [];
 
-        // Looping untuk memisahkan Kolase dan Soft File Mentahan
         data.forEach((file) => {
-          // Generate URL Publik buat masing-masing file
           const { data: { publicUrl } } = supabase.storage
             .from('photobooth-prints')
             .getPublicUrl(`${sessionId}/${file.name}`);
@@ -64,7 +58,7 @@ function DownloadContent() {
         });
 
         setCollageUrl(collage);
-        setRawUrls(rawFiles); // Nanti di-render sebagai grid
+        setRawUrls(rawFiles);
       } catch (err: any) {
         console.error("Supabase Storage Error:", err);
         setError('Gagal memuat data dari server. Koneksi tidak stabil.');
@@ -76,7 +70,6 @@ function DownloadContent() {
     fetchSessionFiles();
   }, [sessionId]);
 
-  // Fungsi Download Paksa (Force Download biar gak kebuka tab baru kalau bisa)
   const handleDownload = async (url: string, filename: string) => {
     try {
       const response = await fetch(url);
@@ -96,9 +89,9 @@ function DownloadContent() {
   };
 
   return (
-    <main className="relative flex min-h-[100dvh] w-full flex-col items-center py-12 px-6 bg-[#f7f6f2] bg-grid-paper text-[#2c2c2c] overflow-y-auto overflow-x-hidden select-none touch-pan-y">
+    // FIX SCROLL: Pakai fixed inset-0 dan buang select-none & touch-pan-y
+    <main className="fixed inset-0 z-50 flex flex-col items-center py-12 px-6 bg-[#f7f6f2] bg-grid-paper text-[#2c2c2c] overflow-y-auto overflow-x-hidden w-full h-full">
       
-      {/* HEADER LOGO */}
       <div className="flex flex-col items-center text-center mb-8 shrink-0">
         <span className="font-serif text-3xl font-black italic text-[#c95d63] tracking-wider">
           Shalvariq.
@@ -120,11 +113,10 @@ function DownloadContent() {
         </div>
       ) : (
         <>
-          {/* SECTION 1: FOTO KOLASE UTAMA */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-sm flex flex-col gap-4 mb-10"
+            className="w-full max-w-sm flex flex-col gap-4 mb-10 shrink-0"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="h-4 w-4 bg-[#c95d63] rounded-full border-2 border-[#2c2c2c]"></div>
@@ -150,13 +142,12 @@ function DownloadContent() {
             </button>
           </motion.div>
 
-          {/* SECTION 2: SOFT FILE MENTAH (Sesuai Request UX Poin 2) */}
           {rawUrls.length > 0 && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="w-full max-w-sm flex flex-col gap-4 mb-10"
+              className="w-full max-w-sm flex flex-col gap-4 mb-10 shrink-0"
             >
               <div className="flex items-center gap-2 mb-2 border-t-2 border-dashed border-gray-300 pt-8">
                 <div className="h-4 w-4 bg-[#00C4CC] rounded-full border-2 border-[#2c2c2c]"></div>
@@ -175,7 +166,7 @@ function DownloadContent() {
                     </div>
                     <button 
                       onClick={() => handleDownload(url, `Shalvariq_Raw_${index + 1}.jpg`)}
-                      className="w-full bg-[#f7f6f2] border-2 border-[#2c2c2c] py-2 text-[10px] font-black uppercase tracking-widest hover:bg-[#2c2c2c] hover:text-white transition-colors flex items-center justify-center gap-1"
+                      className="w-full bg-[#f7f6f2] border-2 border-[#2c2c2c] py-2 text-[10px] font-black uppercase tracking-widest hover:bg-[#2c2c2c] hover:text-white transition-colors flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <Download size={12} /> Mentahan {index + 1}
                     </button>
@@ -185,7 +176,6 @@ function DownloadContent() {
             </motion.div>
           )}
 
-          {/* SECTION 3: SOCIAL MEDIA CTA */}
           <div className="w-full max-w-sm mt-4 flex flex-col gap-4 shrink-0 mb-8 border-t-2 border-solid border-[#2c2c2c] pt-8">
             <div className="bg-white border-[3px] border-[#2c2c2c] p-4 text-center my-2 shadow-[6px_6px_0px_#2c2c2c] transform rotate-[-1deg]">
               <p className="text-xs font-bold text-gray-600 leading-relaxed uppercase tracking-wider">
@@ -212,10 +202,9 @@ function DownloadContent() {
   );
 }
 
-// BUNGKUS KOMPONEN UTAMA PAKE SUSPENSE
 export default function MobileDownloadScreen() {
   return (
-    <Suspense fallback={<div className="h-[100dvh] bg-[#f7f6f2] flex items-center justify-center font-bold text-gray-500 uppercase tracking-widest"><Loader2 size={32} className="animate-spin text-[#c95d63]" /></div>}>
+    <Suspense fallback={<div className="h-[100dvh] w-full bg-[#f7f6f2] flex items-center justify-center font-bold text-gray-500 uppercase tracking-widest"><Loader2 size={32} className="animate-spin text-[#c95d63]" /></div>}>
       <DownloadContent />
     </Suspense>
   );
