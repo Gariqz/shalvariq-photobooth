@@ -1,14 +1,17 @@
 // app/select-to-print/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore, FrameLayout } from '@/store/useStore';
 import { availableFrames } from '@/lib/frameData';
 import { supabase } from '@/lib/supabase';
 import { Printer, Trash2, ShoppingCart, Loader2, CheckCircle2, Focus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
+// ==========================================
+// HELPER FUNCTIONS (Sama seperti sebelumnya)
+// ==========================================
 const generateFinalImage = async (photos: string[], frame: FrameLayout): Promise<string> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -33,7 +36,7 @@ const generateFinalImage = async (photos: string[], frame: FrameLayout): Promise
     const renderProcess = async () => {
       try {
         for (let i = 0; i < photos.length; i++) {
-          if (!photos[i]) continue; // Lewati kalau slot kosong
+          if (!photos[i]) continue;
           const slot = frame.slots[i];
           const img = await loadImage(photos[i]);
           ctx.drawImage(img, slot.x, slot.y, slot.width, slot.height);
@@ -59,32 +62,52 @@ const base64ToBlob = (base64: string, mimeType: string) => {
   return new Blob([byteArray], { type: mimeType });
 };
 
-export default function SelectToPrint() {
+// ==========================================
+// KOMPONEN INTI
+// ==========================================
+function SelectToPrintContent() {
   const router = useRouter();
-  const { capturedPhotos, stopTimer } = useStore(); // Ambil fungsi stopTimer
+  const searchParams = useSearchParams();
+  const customFrameUrl = searchParams.get('customFrame'); 
+
+  // Ambil state dari useStore (termasuk frame yang dipilih di halaman sebelumnya)
+  const { capturedPhotos, stopTimer, selectedFrame, rawSoftFiles, sessionId } = useStore(); 
   
-  const [activeFrame, setActiveFrame] = useState(availableFrames[0]);
-  
-  // State selectedShots sekarang berupa array dengan panjang statis sesuai total slot frame
+  // KUNCI FRAME: Kalau dari QR pakai custom, kalau nggak pakai yang dipilih di awal, kalau error pakai default index 0
+  const [activeFrame, setActiveFrame] = useState<FrameLayout>(selectedFrame || availableFrames[0]);
   const [selectedShots, setSelectedShots] = useState<string[]>(() => 
-    Array(availableFrames[0].totalShots).fill('')
+    Array((selectedFrame || availableFrames[0]).totalShots).fill('')
   );
-  // State untuk melacak slot mana yang lagi dipilih/aktif buat diisi
+  
   const [activeSlotIndex, setActiveSlotIndex] = useState<number>(0);
   const [isRendering, setIsRendering] = useState(false);
 
-  // UX REVISI: Matikan countdown 5 menit kiosk begitu masuk halaman ini biar user gak panik
+  // 1. INJEKSI CUSTOM FRAME DARI QR CODE (Jika Ada)
+  useEffect(() => {
+    if (customFrameUrl) {
+      const baseTemplate = availableFrames.find(f => f.name.includes("3-SLOT")) || availableFrames[1]; 
+      const customFrameObj: FrameLayout = {
+        ...baseTemplate,
+        id: 'custom-qr-frame',
+        name: '✨ Custom Desainmu',
+        overlayImage: customFrameUrl, 
+      };
+      setActiveFrame(customFrameObj);
+      setSelectedShots(Array(customFrameObj.totalShots).fill(''));
+      setActiveSlotIndex(0);
+    }
+  }, [customFrameUrl]);
+
+  // 2. Matikan countdown
   useEffect(() => {
     if (stopTimer) stopTimer();
   }, [stopTimer]);
 
-  // Mengisi slot yang sedang aktif dengan foto yang di-tap dari gallery
   const handleSelectPhoto = (photoSrc: string) => {
     const updatedShots = [...selectedShots];
     updatedShots[activeSlotIndex] = photoSrc;
     setSelectedShots(updatedShots);
     
-    // Auto pindah fokus ke slot kosong berikutnya (kalau ada)
     const nextEmptySlot = updatedShots.findIndex(shot => shot === '');
     if (nextEmptySlot !== -1) {
       setActiveSlotIndex(nextEmptySlot);
@@ -95,16 +118,7 @@ export default function SelectToPrint() {
     const updatedShots = [...selectedShots];
     updatedShots[indexToRemove] = '';
     setSelectedShots(updatedShots);
-    setActiveSlotIndex(indexToRemove); // Langsung fokuskan kembali ke slot yang baru dikosongkan
-  };
-
-  const handleChangeFrame = (frameId: string) => {
-    const frame = availableFrames.find(f => f.id === frameId);
-    if (frame) {
-      setActiveFrame(frame);
-      setSelectedShots(Array(frame.totalShots).fill('')); // Reset isi slot
-      setActiveSlotIndex(0); // Balik ke slot pertama
-    }
+    setActiveSlotIndex(indexToRemove);
   };
 
   const handlePrint = async () => {
@@ -112,34 +126,33 @@ export default function SelectToPrint() {
     try {
       const finalImageBase64 = await generateFinalImage(selectedShots, activeFrame);
       const imageBlob = base64ToBlob(finalImageBase64, 'image/jpeg');
-      const uniqueFileName = `shalvariq_${Date.now()}.jpg`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const currentSession = sessionId || `SHALVARIQ-${Date.now()}`;
+      const uniqueFileName = `${currentSession}/hasil_kolase.jpg`; 
+      
+      // 1. Upload Kolase
+      const { error: uploadError } = await supabase.storage
         .from('photobooth-prints')
         .upload(uniqueFileName, imageBlob, { contentType: 'image/jpeg' });
 
       if (uploadError) throw uploadError;
 
-      // DOMAIN REVISI: Ganti link ini pake domain website Shalvariq lu yang udah live di Vercel nanti!
+      // 2. Upload Semua Soft File
+      const rawUploadPromises = rawSoftFiles.map(async (rawBase64, index) => {
+        const rawBlob = base64ToBlob(rawBase64, 'image/jpeg');
+        const rawFileName = `${currentSession}/mentahan_${index + 1}.jpg`;
+        return supabase.storage
+          .from('photobooth-prints')
+          .upload(rawFileName, rawBlob, { contentType: 'image/jpeg' });
+      });
+
+      await Promise.all(rawUploadPromises);
+
+      // 3. Lempar ke Halaman Success dengan Session ID
       const productionDomain = "https://shalvariq-photobooth.vercel.app"; 
-      const brandedDownloadUrl = `${productionDomain}/download?file=${encodeURIComponent(uniqueFileName)}`;
+      const brandedDownloadUrl = `${productionDomain}/download?session=${encodeURIComponent(currentSession)}`;
 
-      // ALAM FISIK (Dikomak sementara buat testing digital flow)
-      /*
-      try {
-        await fetch('http://localhost:4000/api/print', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: finalImageBase64 })
-        });
-      } catch (hardwareError) {
-        console.warn("Printer offline mode:", hardwareError);
-      }
-      */
-
-      // Lempar ke halaman sukses membawa URL Landing Page Handphone
       router.push(`/success?url=${encodeURIComponent(brandedDownloadUrl)}`);
-
     } catch (error) {
       console.error(error);
       alert("Gagal mengunggah gambar ke cloud.");
@@ -148,36 +161,22 @@ export default function SelectToPrint() {
     }
   };
 
-  // Cek apakah semua slot sudah terisi penuh tanpa ada string kosong
   const isPrintReady = selectedShots.every(shot => shot !== '');
 
   return (
-    <main className="relative flex h-screen w-screen flex-col items-center justify-between py-6 px-6 text-[#2c2c2c] overflow-hidden select-none">
+    <main className="relative flex h-screen w-screen flex-col items-center justify-between py-6 px-6 text-[#2c2c2c] overflow-hidden select-none bg-[#f7f6f2] bg-grid-paper">
       
-      {/* HEADER */}
+      {/* HEADER BERSIH (TANPA PILIHAN FRAME) */}
       <div className="z-20 flex flex-col items-center w-full mt-1">
-        <h1 className="font-serif text-3xl font-black italic mb-4 text-center">
-          Susun <span className="text-highlight">Foto Anda.</span>
+        <h1 className="font-serif text-3xl font-black italic mb-2 text-center">
+          Susun <span className="text-[#c95d63]">Foto Anda.</span>
         </h1>
-        
-        <div className="flex gap-4 p-2 bg-white border-[3px] border-[#2c2c2c] shadow-[4px_4px_0px_#2c2c2c]">
-          {availableFrames.map(frame => (
-            <button
-              key={frame.id}
-              onClick={() => handleChangeFrame(frame.id)}
-              className={`px-6 py-2 text-sm font-bold uppercase tracking-wider transition-all border-2 border-transparent ${
-                activeFrame.id === frame.id 
-                  ? 'bg-[#c95d63] text-white border-[#2c2c2c]' 
-                  : 'bg-transparent text-[#2c2c2c] hover:bg-gray-100'
-              }`}
-            >
-              {frame.name}
-            </button>
-          ))}
+        <div className="text-xs uppercase tracking-widest font-bold text-gray-500 bg-white px-4 py-1 border-2 border-[#2c2c2c] shadow-[2px_2px_0px_#2c2c2c]">
+          Layout Terpilih: {activeFrame.name}
         </div>
       </div>
 
-      {/* CENTER WORKSPACE: Frame Canvas */}
+      {/* WORKSPACE CANVAS */}
       <div className="z-10 flex flex-col items-center justify-center flex-1 w-full my-2">
         <div 
           className="relative bg-white border-[4px] border-[#2c2c2c] shadow-[12px_12px_0px_rgba(44,44,44,0.15)] transition-all duration-500 transform rotate-1"
@@ -188,7 +187,6 @@ export default function SelectToPrint() {
         >
           <div className="scrapbook-tape top-[-20px] right-[-30px] rotate-[35deg]" />
 
-          {/* GENERATE KOTAK SLOT BERDASARKAN KOORDINAT */}
           {activeFrame.slots.map((slot, index) => {
             const shot = selectedShots[index];
             const isCurrentActive = activeSlotIndex === index;
@@ -196,7 +194,7 @@ export default function SelectToPrint() {
             return (
               <div 
                 key={index} 
-                onClick={() => setActiveSlotIndex(index)} // Klik untuk mengaktifkan target slot
+                onClick={() => setActiveSlotIndex(index)}
                 className={`absolute flex items-center justify-center overflow-hidden cursor-pointer group transition-all ${
                   isCurrentActive 
                     ? 'border-4 border-[#c95d63] bg-[#fdf2f2] z-20 scale-[1.02] shadow-lg' 
@@ -239,16 +237,14 @@ export default function SelectToPrint() {
         </div>
       </div>
 
-      {/* BOTTOM DOCK */}
+      {/* BOTTOM DOCK (Sama seperti sebelumnya) */}
       <div className="w-full max-w-6xl bg-white border-[4px] border-[#2c2c2c] p-5 z-20 shadow-[8px_8px_0px_#2c2c2c] flex gap-6 items-center relative">
-        <div className="absolute top-[-15px] left-6 bg-highlight px-4 py-1 border-2 border-[#2c2c2c] font-bold text-xs uppercase tracking-widest transform rotate-[-2deg]">
+        <div className="absolute top-[-15px] left-6 bg-[#f5e6e8] px-4 py-1 border-2 border-[#2c2c2c] font-bold text-xs uppercase tracking-widest transform rotate-[-2deg]">
           Tap foto untuk isi kotak aktif
         </div>
 
-        {/* Gallery Horizontal */}
         <div className="flex-1 overflow-x-auto no-scrollbar flex gap-4 items-center pt-2 pb-2 px-2">
           {capturedPhotos.map((photo, index) => {
-            // Cek apakah foto ini sudah ada di dalam array selectedShots
             const isSelected = selectedShots.includes(photo);
             
             return (
@@ -256,10 +252,10 @@ export default function SelectToPrint() {
                 key={index}
                 whileTap={isSelected ? {} : { scale: 0.95 }}
                 onClick={() => !isSelected && handleSelectPhoto(photo)}
-                disabled={isSelected} // MATIIN TOMBOL KALAU UDAH DIPILIH
+                disabled={isSelected}
                 className={`relative shrink-0 h-28 w-24 bg-white p-1.5 pb-6 border-[2px] border-[#2c2c2c] transition-all transform ${
                   isSelected 
-                    ? 'opacity-40 scale-95 shadow-none rotate-0 cursor-not-allowed' // Tampilan kalau udah kepake
+                    ? 'opacity-40 scale-95 shadow-none rotate-0 cursor-not-allowed'
                     : 'shadow-[3px_3px_0px_#2c2c2c] hover:-translate-y-1 even:rotate-[2deg] odd:rotate-[-2deg] cursor-pointer'
                 }`}
               >
@@ -268,8 +264,6 @@ export default function SelectToPrint() {
                 <div className="absolute bottom-0.5 right-1.5 font-serif font-bold text-[#2c2c2c] text-xs">
                   #{index + 1}
                 </div>
-                
-                {/* Indikator Checklist Bintang */}
                 {isSelected && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
                     <div className="bg-[#c95d63] rounded-full p-2 border-2 border-[#2c2c2c] shadow-md transform rotate-12">
@@ -284,7 +278,6 @@ export default function SelectToPrint() {
 
         <div className="h-28 w-0.5 bg-gray-300 border-l-2 border-dashed border-[#ccc] shrink-0" />
 
-        {/* Tombol Cetak */}
         <div className="flex flex-col gap-3 min-w-[260px] shrink-0">
           <button 
             onClick={handlePrint}
@@ -308,5 +301,13 @@ export default function SelectToPrint() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SelectToPrint() {
+  return (
+    <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-[#f7f6f2]"><Loader2 size={48} className="animate-spin text-[#c95d63]" /></div>}>
+      <SelectToPrintContent />
+    </Suspense>
   );
 }

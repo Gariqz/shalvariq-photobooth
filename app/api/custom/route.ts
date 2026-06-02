@@ -1,11 +1,9 @@
- // app/api/custom/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Inisialisasi Supabase Admin/Client backend
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(req: Request) {
   try {
@@ -18,18 +16,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Data form tidak lengkap' }, { status: 400 });
     }
 
-    // 1. Generate Order ID unik untuk Midtrans & DB
+    // 1. Generate Order ID
     const orderId = `REQ-${Date.now()}`;
-    
-    // 2. Upload file PNG ke Supabase Storage Bucket
     const fileExt = file.name.split('.').pop();
-    const fileName = `${orderId}.${fileExt}`; // Nama file disamain ama Order ID biar gampang dicari
+    const fileName = `${orderId}.${fileExt}`;
     
-    // Convert File object ke Buffer karena berjalan di environment Node.js server
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const { data: storageData, error: storageError } = await supabase.storage
+    // 2. Upload ke Supabase Storage
+    const { error: storageError } = await supabase.storage
       .from('custom-frames')
       .upload(fileName, buffer, {
         contentType: 'image/png',
@@ -38,12 +34,12 @@ export async function POST(req: Request) {
 
     if (storageError) throw storageError;
 
-    // 3. Ambil URL Publik dari file yang barusan di-upload
+    // 3. Ambil URL Publik
     const { data: { publicUrl } } = supabase.storage
       .from('custom-frames')
       .getPublicUrl(fileName);
 
-    // 4. Insert data awal ke tabel custom_orders (status default: pending)
+    // 4. Catat di Database
     const { error: dbError } = await supabase
       .from('custom_orders')
       .insert({
@@ -56,13 +52,41 @@ export async function POST(req: Request) {
 
     if (dbError) throw dbError;
 
-    // 5. TODO BESOK: Tembak API Midtrans di sini pake data orderId & nominal harga custom frame
-    // Untuk sekarang, kita return sukses dulu beserta orderId-nya
+    // 5. GENERATE TOKEN MIDTRANS SNAP
+    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+    const authString = Buffer.from(`${serverKey}:`).toString('base64');
+    
+    const midtransResponse = await fetch('https://app.sandbox.midtrans.com/snap/v1/transactions', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${authString}`
+      },
+      body: JSON.stringify({
+        transaction_details: {
+          order_id: orderId,
+          gross_amount: 35000 // Harga custom frame lu, sesuaikan nominalnya
+        },
+        customer_details: {
+          first_name: name,
+          email: email
+        }
+      })
+    });
+
+    const midtransData = await midtransResponse.json();
+
+    if (!midtransResponse.ok) {
+      throw new Error(midtransData.error_messages?.[0] || 'Gagal generate token pembayaran');
+    }
+
+    // 6. Return ke Frontend bawa Snap Token-nya
     return NextResponse.json({ 
       success: true, 
       orderId: orderId,
       publicUrl: publicUrl,
-      message: 'File berhasil diunggah dan database berhasil dicatat!'
+      snapToken: midtransData.token
     });
 
   } catch (error: any) {

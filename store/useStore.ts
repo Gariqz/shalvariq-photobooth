@@ -1,6 +1,6 @@
+// store/useStore.ts
 import { create } from 'zustand';
 
-// Update Interface FrameLayout buat kebutuhan Canvas API
 export interface FrameLayout {
   id: string;
   name: string;
@@ -8,35 +8,31 @@ export interface FrameLayout {
   overlayImage: string;
   totalShots: number;
   type: 'strip' | 'grid' | 'polaroid';
-  width: number;        // Resolusi akhir (Misal 1200 untuk kertas 4x6)
-  height: number;       // Resolusi akhir (Misal 1800 untuk kertas 4x6)
-  slots: {              // Koordinat buat nempelin foto
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }[];
+  width: number;
+  height: number;
+  slots: { x: number; y: number; width: number; height: number; }[];
 }
+
 interface BoothState {
-  step: 'attract' | 'package_selection' | 'payment' | 'capture_session' | 'selection_print';
+  step: 'attract' | 'frame_selection' | 'package_selection' | 'payment' | 'capture_session' | 'selection_print';
   selectedFrame: FrameLayout | null;
-  capturedPhotos: string[];
   
-  // State Pembayaran & Sesi
+  // Nampung foto yang masuk ke layout & semua foto mentah
+  capturedPhotos: string[];
+  rawSoftFiles: string[]; 
+  
+  // State Sesi
+  sessionId: string | null;
   sessionDuration: number;
   isPaid: boolean;
-  
-  // State Timer Global
   timeLeft: number; 
   isTimerActive: boolean;
   
-  // Actions Utama
+  // Actions
   setStep: (step: BoothState['step']) => void;
   setFrame: (frame: FrameLayout) => void;
   addCapturedPhoto: (photo: string) => void;
   setPaymentStatus: (status: boolean) => void;
-  
-  // Actions Sesi & Timer
   startSession: (duration: number) => void;
   tickTimer: () => void;
   stopTimer: () => void;
@@ -44,25 +40,29 @@ interface BoothState {
 }
 
 export const useStore = create<BoothState>((set) => ({
-  // Initial States
   step: 'attract',
   selectedFrame: null,
   capturedPhotos: [],
+  rawSoftFiles: [], // Nampung jepretan mentah tanpa henti
+  sessionId: null,
   sessionDuration: 0,
   isPaid: false,
   timeLeft: 0,
   isTimerActive: false,
   
-  // Basic Actions
   setStep: (step) => set({ step }),
   setFrame: (frame) => set({ selectedFrame: frame }),
+  
+  // addCapturedPhoto sekarang nyimpen ke dua tempat
   addCapturedPhoto: (photo) => set((state) => ({ 
-    capturedPhotos: [...state.capturedPhotos, photo] 
+    capturedPhotos: [...state.capturedPhotos, photo],
+    rawSoftFiles: [...state.rawSoftFiles, photo]
   })),
+  
   setPaymentStatus: (status) => set({ isPaid: status }),
   
-  // Mulai sesi sekaligus trigger timer
   startSession: (duration) => set({ 
+    sessionId: `SHALVARIQ-${Date.now()}`, // Generate ID unik pas sesi mulai
     sessionDuration: duration,
     timeLeft: duration,
     isTimerActive: true,
@@ -70,23 +70,21 @@ export const useStore = create<BoothState>((set) => ({
     step: 'capture_session' 
   }),
   
-  // Hitung mundur timer (Dipanggil oleh interval di komponen FloatingTimer)
   tickTimer: () => set((state) => {
-    // Kalau waktu habis, matikan timer dan paksa pindah ke halaman pilih foto cetak
     if (state.timeLeft <= 1) {
       return { timeLeft: 0, isTimerActive: false, step: 'selection_print' };
     }
     return { timeLeft: state.timeLeft - 1 };
   }),
   
-  // Jaga-jaga kalau butuh pause/stop manual
   stopTimer: () => set({ isTimerActive: false }),
   
-  // Reset seluruh state ke awal (Misal saat sesi benar-benar selesai)
   clearSession: () => set({ 
     step: 'attract', 
     selectedFrame: null, 
     capturedPhotos: [],
+    rawSoftFiles: [],
+    sessionId: null,
     sessionDuration: 0,
     isPaid: false,
     timeLeft: 0,
