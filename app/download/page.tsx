@@ -183,7 +183,7 @@ function DownloadContent() {
               </p>
             </div>
             <a 
-              href="https://instagram.com/shalvariq.photobooth"
+              href="https://instagram.com/shalvariq.booth"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-retro bg-white text-[#2c2c2c] py-3.5 text-center font-bold uppercase tracking-wider text-sm flex items-center justify-center gap-2 border-[3px] border-[#2c2c2c] shadow-[4px_4px_0px_#2c2c2c] w-full"
@@ -193,7 +193,7 @@ function DownloadContent() {
                 <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
                 <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
               </svg>
-              @shalvariq.photobooth
+              @shalvariq.booth
             </a>
           </div>
         </>

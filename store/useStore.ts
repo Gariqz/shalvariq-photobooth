@@ -14,21 +14,21 @@ export interface FrameLayout {
 }
 
 interface BoothState {
-  step: 'attract' | 'frame_selection' | 'package_selection' | 'payment' | 'capture_session' | 'selection_print';
+  step: 'attract' | 'frame_selection' | 'package_selection' | 'payment' | 'capture_session' | 'selection_print' | 'merch_selection';
   selectedFrame: FrameLayout | null;
   
-  // Nampung foto yang masuk ke layout & semua foto mentah
   capturedPhotos: string[];
   rawSoftFiles: string[]; 
   
-  // State Sesi
   sessionId: string | null;
   sessionDuration: number;
   isPaid: boolean;
   timeLeft: number; 
   isTimerActive: boolean;
+
+  // STATE BARU: Buat nampung hasil gambar jadi yang siap dicetak/dijadikan tekstur 3D
+  finalCollageBase64: string | null;
   
-  // Actions
   setStep: (step: BoothState['step']) => void;
   setFrame: (frame: FrameLayout) => void;
   addCapturedPhoto: (photo: string) => void;
@@ -37,23 +37,27 @@ interface BoothState {
   tickTimer: () => void;
   stopTimer: () => void;
   clearSession: () => void;
+
+  // ACTION BARU
+  setFinalCollageBase64: (base64: string | null) => void;
 }
 
 export const useStore = create<BoothState>((set) => ({
   step: 'attract',
   selectedFrame: null,
   capturedPhotos: [],
-  rawSoftFiles: [], // Nampung jepretan mentah tanpa henti
+  rawSoftFiles: [], 
   sessionId: null,
   sessionDuration: 0,
   isPaid: false,
   timeLeft: 0,
   isTimerActive: false,
   
+  finalCollageBase64: null,
+  
   setStep: (step) => set({ step }),
   setFrame: (frame) => set({ selectedFrame: frame }),
   
-  // addCapturedPhoto sekarang nyimpen ke dua tempat
   addCapturedPhoto: (photo) => set((state) => ({ 
     capturedPhotos: [...state.capturedPhotos, photo],
     rawSoftFiles: [...state.rawSoftFiles, photo]
@@ -62,7 +66,7 @@ export const useStore = create<BoothState>((set) => ({
   setPaymentStatus: (status) => set({ isPaid: status }),
   
   startSession: (duration) => set({ 
-    sessionId: `SHALVARIQ-${Date.now()}`, // Generate ID unik pas sesi mulai
+    sessionId: `SHALVARIQ-${Date.now()}`,
     sessionDuration: duration,
     timeLeft: duration,
     isTimerActive: true,
@@ -78,6 +82,8 @@ export const useStore = create<BoothState>((set) => ({
   }),
   
   stopTimer: () => set({ isTimerActive: false }),
+
+  setFinalCollageBase64: (base64) => set({ finalCollageBase64: base64 }),
   
   clearSession: () => set({ 
     step: 'attract', 
@@ -88,6 +94,7 @@ export const useStore = create<BoothState>((set) => ({
     sessionDuration: 0,
     isPaid: false,
     timeLeft: 0,
-    isTimerActive: false
+    isTimerActive: false,
+    finalCollageBase64: null
   }),
 }));

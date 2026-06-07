@@ -58,4 +58,24 @@ export const availableFrames: FrameLayout[] = [
       { x: 650, y: 900, width: 400, height: 500 }, 
     ]
   },
+    {
+    id: 'memory_lane',
+    name: 'Memory Lane (3 Slot)',
+    thumbnail: '/frames/memory-lane1.png',
+    overlayImage: '/frames/memory-lane1.png',
+    totalShots: 6,
+    type: 'grid',
+    width: 1200,
+    height: 1800,
+    slots: [
+      // Format mirip grid, tapi padding (jarak antar foto) dibikin lebih renggang
+      // Biar pas dipotong fisik manual nanti nggak gampang meleset
+      { x: 25, y: 265, width: 550, height: 385 }, 
+      { x: 25, y: 710, width: 550, height: 385 }, 
+      { x: 25, y: 1150, width: 550, height: 385 },
+      { x: 625, y: 265, width: 550, height: 385 },
+      { x: 625, y: 710, width: 550, height: 385 },
+      { x: 625, y: 1150, width: 550, height: 385 }
+    ]
+  }
 ];
